@@ -100,7 +100,7 @@ table.t a{color:var(--blue-t)}
 <footer class="sitefoot"><div class="wrap"><span>Wikimedia Community User Group Uganda · Uganda Mega Editathon</span><span>Live data: Wikimedia APIs, refreshed every minute</span></div></footer>
 
 <script type="module">
-import { computeBoard, buildContext, SMALL_LISTS, windowState, cleanUser } from './editathon/board.js';
+import { computeBoard, buildContext, getParticipants, SMALL_LISTS, windowState, cleanUser } from './editathon/board.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -108,20 +108,20 @@ const fmt = n => Number(n || 0).toLocaleString('en-GB');
 const J = async (u, opts) => { const r = await fetch(u, opts); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); };
 const wikiLink = (cfg, wiki, title) => (cfg.wikis[wiki] ? cfg.wikis[wiki].site : 'https://en.wikipedia.org/wiki/') + encodeURI(String(title).replace(/ /g, '_'));
 
-// theme buttons (same behaviour as the atlas)
+// theme buttons (same behaviour as the atlas): light, dark, or follow the device
 (() => {
   const root = document.documentElement, box = $('#theme');
-  const cur = () => { try { return localStorage.getItem('atlas-theme') || 'system'; } catch (e) { return 'system'; } };
-  const paint = () => box.querySelectorAll('button').forEach(b => b.style.color = b.dataset.m === cur() ? 'var(--fg)' : '');
-  box.addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    try { if (b.dataset.m === 'system') { localStorage.removeItem('atlas-theme'); root.removeAttribute('data-theme'); } else { localStorage.setItem('atlas-theme', b.dataset.m); root.setAttribute('data-theme', b.dataset.m); } } catch (e) {}
-    paint();
-  });
-  paint();
+  const pref = () => { try { const p = localStorage.getItem('atlas-theme'); return p === 'light' || p === 'dark' ? p : 'system'; } catch (e) { return 'system'; } };
+  const apply = (p, save) => {
+    if (p === 'light' || p === 'dark') root.setAttribute('data-theme', p); else root.removeAttribute('data-theme');
+    if (save) { try { p === 'system' ? localStorage.removeItem('atlas-theme') : localStorage.setItem('atlas-theme', p); } catch (e) { } }
+    box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === p)));
+  };
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (b) apply(b.dataset.m, true); });
+  apply(pref(), false);
 })();
 
-let CFG, INDEX, CTX, BOARD = null, METRICS = null, PARTS = [], SOURCE = 'none', LAST_OK = null;
+let PSRC = null, CFG, INDEX, CTX, BOARD = null, METRICS = null, PARTS = [], SOURCE = 'none', LAST_OK = null;
 
 // ---------- tabs
 $('#tabs').addEventListener('click', e => {
@@ -159,7 +159,7 @@ function setLive(kind, text) {
 function renderBoard() {
   const root = $('#p-board'), b = BOARD;
   if (!PARTS.length) {
-    root.innerHTML = `<div class="card empty"><b>No participants have signed up yet.</b><br>Add usernames to <a href="https://github.com/kasozidenis/uganda-atlas/edit/main/editathon/participants.json" target="_blank" rel="noopener">editathon/participants.json</a>. See “How it works”.</div>`;
+    root.innerHTML = `<div class="card empty"><b>No participants have signed up yet.</b><br>Join the programme on the <a href="${esc(CFG.participantsSource.join)}" target="_blank" rel="noopener">Outreach Dashboard</a> and you will appear here within a minute.</div>`;
     return;
   }
   if (!b) { root.innerHTML = '<div class="card empty">Loading…</div>'; return; }
@@ -326,7 +326,7 @@ async function checkRows(l, rows) {
 function renderHow() {
   const p = CFG.points;
   $('#p-how').innerHTML = `<div class="card"><h3 style="margin-top:0">What we are doing</h3><p>For three weeks we are improving how Uganda looks on Wikipedia, Wikidata and Wikimedia Commons: adding the missing lead images, connecting existing Commons images, adding Luganda labels, and photographing what has no image yet.</p>
-    <h3>Join in</h3><ol><li>Make an account on Wikipedia if you do not have one.</li><li>Send your username to the organisers, who add it to <a href="https://github.com/kasozidenis/uganda-atlas/edit/main/editathon/participants.json" target="_blank" rel="noopener">participants.json</a>. Only listed usernames appear on the leaderboard.</li><li>Pick a list under “Task lists”, open an item, and make the edit. Add a short edit summary.</li><li>Watch your points here. The page refreshes by itself every minute.</li></ol>
+    <h3>Join in</h3><ol><li>Make an account on Wikipedia if you do not have one.</li><li>Register for the event on <a href="${esc(CFG.participantsSource.event)}" target="_blank" rel="noopener">Meta-Wiki</a> and join the programme on the <a href="${esc(CFG.participantsSource.join)}" target="_blank" rel="noopener">Outreach Dashboard</a>. The leaderboard takes its participants from the Dashboard, so you appear here automatically, within a minute of enrolling.</li><li>Pick a list under “Task lists”, open an item, and make the edit. Add a short edit summary.</li><li>Watch your points here. The page refreshes by itself every minute.</li></ol>
     <h3>How points work</h3><table class="t"><tbody>
       <tr><td>Any page you edit (first edit of that page each day)</td><td class="num"><b>${p.edit}</b></td></tr>
       <tr><td>Extra, for a page that is on the task lists (English Wikipedia, Luganda Wikipedia, Runyankore on the Incubator)</td><td class="num"><b>+${p.task_page}</b></td></tr>
@@ -342,7 +342,11 @@ function renderHow() {
 
 // ---------- data loading and refresh
 async function loadParticipants() {
-  try { const j = await J('editathon/participants.json?t=' + Date.now(), { cache: 'no-store' }); PARTS = (j.participants || []).filter(p => cleanUser(p.user)); } catch (e) { }
+  let manual = [];
+  try { const j = await J('editathon/participants.json?t=' + Date.now(), { cache: 'no-store' }); manual = j.participants || []; } catch (e) { }
+  const r = await getParticipants(CFG, u => fetch(u), manual);
+  if (r.users.length || !PARTS.length) PARTS = r.users;      // keep the last good list if both sources fail
+  PSRC = r;
 }
 async function loadMetrics() {
   try { const j = await J(CFG.metricsUrl + '?t=' + Math.floor(Date.now() / 300000)); if (j && j.lists) METRICS = j; } catch (e) { }
