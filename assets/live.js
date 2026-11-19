@@ -92,6 +92,8 @@
       (delta >= 0 ? '+' : '') + fmt(delta) + ' since the September snapshot), views to ' + esc(to) + (L.viewsComplete === false ? ' (views for some articles are still being brought up to date and use the September figure until then)' : '') + '. The figures at the top, the groupings, the most-read list and all article tables are live and use the same rules as the snapshot (every content page, front page left out). The year-by-year chart, readership over time and the analysis text are still the September snapshot.' +
       (fresh ? '<br><span style="color:var(--soft)">Newest articles: ' + fresh + '</span>' : '') + '</div>';
     anchor.parentNode.insertBefore(el, anchor.nextSibling);
+    var badge = document.querySelector('.dbadge');
+    if (badge) badge.textContent = 'Live · views to ' + to + ' · updated ' + when;
   }
 
   function boot() {
