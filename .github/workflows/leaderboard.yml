@@ -19,7 +19,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,6 +29,9 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/out"
           curl -fsS "https://raw.githubusercontent.com/${{ github.repository }}/editathon-data/metrics.json" -o "$RUNNER_TEMP/out/metrics.json" || rm -f "$RUNNER_TEMP/out/metrics.json"
+          for f in luganda-state.json luganda-live.json; do
+            curl -fsS "https://raw.githubusercontent.com/${{ github.repository }}/editathon-data/$f" -o "$RUNNER_TEMP/out/$f" || rm -f "$RUNNER_TEMP/out/$f"
+          done
       - name: Compute the leaderboard
         run: node scripts/leaderboard.mjs "$RUNNER_TEMP/out/leaderboard.json"
       - name: Re-check the task lists (hourly)
@@ -37,6 +40,17 @@ jobs:
             node scripts/metrics.mjs "$RUNNER_TEMP/out/metrics.json"
           else
             echo "metrics are recent; skipping"
+          fi
+      - name: Live Luganda Wikipedia numbers (hourly)
+        # Same filter as the September snapshot; only measures what changed since the last run. If it fails, the previous
+        # luganda-live.json is kept and the page falls back to it (or to the snapshot).
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          if [ ! -f "$RUNNER_TEMP/out/luganda-live.json" ] || [ "$(date -u +%M)" -lt 10 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node scripts/live_luganda.mjs "$RUNNER_TEMP/out"
+          else
+            echo "Luganda numbers are recent; skipping"
           fi
       - name: Publish on the editathon-data branch
         run: |

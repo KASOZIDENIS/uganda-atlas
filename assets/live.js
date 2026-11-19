@@ -72,15 +72,38 @@
     anchor.parentNode.insertBefore(el, anchor.nextSibling);
   }
 
+  // dashboards with live data (assets/live-patch.js swaps their numbers): say so, with when and how far the data runs
+  function liveNote() {
+    var id = (location.hash || '').replace(/^#/, '').split('.')[0];
+    var old = document.getElementById('livedata');
+    if (old) { if (old.dataset.id === id) return; old.remove(); }
+    var L = id === 'luganda' && window.__LIVE_LUGANDA; if (!L) return;
+    var head = document.querySelector('#app h1'); if (!head) return;
+    var anchor = head.closest('.wrap') || head.parentNode;
+    var el = document.createElement('div'); el.className = 'livestrip wrap'; el.id = 'livedata'; el.dataset.id = id;
+    var when = new Date(L.generated).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    var s = L.mtdThrough || L.viewsThrough;
+    var to = new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8))).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    var delta = L.kpis.articles - L.baseline.articles;
+    var fresh = (L.newest || []).slice(0, 5).map(function (n) {
+      return '<a href="https://lg.wikipedia.org/wiki/' + encodeURIComponent(n.title.replace(/ /g, '_')) + '" target="_blank" rel="noopener">' + esc(n.title) + '</a>';
+    }).join(', ');
+    el.innerHTML = '<span class="eyebrow">Live data · updated ' + esc(when) + '</span><div><b>' + fmt(L.kpis.articles) + '</b> articles on the live wiki (' +
+      (delta >= 0 ? '+' : '') + fmt(delta) + ' since the September snapshot), views to ' + esc(to) + (L.viewsComplete === false ? ' (views for some articles are still being brought up to date and use the September figure until then)' : '') + '. The figures at the top, the groupings, the most-read list and all article tables are live and use the same rules as the snapshot (every content page, front page left out). The year-by-year chart, readership over time and the analysis text are still the September snapshot.' +
+      (fresh ? '<br><span style="color:var(--soft)">Newest articles: ' + fresh + '</span>' : '') + '</div>';
+    anchor.parentNode.insertBefore(el, anchor.nextSibling);
+  }
+
   function boot() {
+    document.addEventListener('live-data', function () { setTimeout(liveNote, 300); });
     J('editathon/config.json?t=' + Math.floor(Date.now() / 60000)).then(function (c) {
       CFG = c; banner();
       J(c.snapshotUrl + '?t=' + Math.floor(Date.now() / 120000)).then(function (b) { BOARD = b; var e = document.getElementById('ehbar'); if (e && e._paint) e._paint(); }).catch(function () { });
       J(c.metricsUrl + '?t=' + Math.floor(Date.now() / 300000)).then(function (m) { METRICS = m; strip(); }).catch(function () { });
     }).catch(function () { });
     var app = document.getElementById('app');
-    if (app) new MutationObserver(function () { strip(); }).observe(app, { childList: true, subtree: false });
-    window.addEventListener('hashchange', function () { setTimeout(strip, 400); });
+    if (app) new MutationObserver(function () { strip(); liveNote(); }).observe(app, { childList: true, subtree: false });
+    window.addEventListener('hashchange', function () { setTimeout(function () { strip(); liveNote(); }, 400); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
