@@ -1,4 +1,6 @@
 {
-  "_help": "Add one line per participant: {\"user\": \"Denis kasozi\", \"team\": \"optional team name\"}. Usernames are as they appear on Wikipedia (spaces, not underscores). Edit this file on GitHub and save; the leaderboard picks it up within a few minutes.",
-  "participants": []
+  "_help": "Add one line per participant: {\"user\": \"Username\", \"team\": \"optional team name\"}. Usernames are as they appear on Wikipedia (spaces, not underscores). Edit this file on GitHub and save; the leaderboard picks it up within a few minutes.",
+  "participants": [
+    {\"user\": \"Denis kasozi\", \"team\": \"optional team name\"}
+  ]
 }
