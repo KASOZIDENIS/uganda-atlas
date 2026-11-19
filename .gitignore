@@ -1,0 +1,23 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+
+# Secrets and local config
+.env
+.env.*
+*.key
+*.pem
+
+# Local test output and logs
+leaderboard.json
+*.log
+*.tmp
+~$*

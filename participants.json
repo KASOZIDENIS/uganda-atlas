@@ -1,6 +1,0 @@
-{
-  "_help": "One block per participant, like the first one below. user = the Wikimedia username (with spaces, not underscores). team is optional, use an empty text if none. Keep the commas between blocks and no comma after the last one.",
-  "participants": [
-    { "user": "Denis kasozi", "team": "" }
-  ]
-}
