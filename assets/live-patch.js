@@ -1,4 +1,4 @@
-// Live data for the dashboards, loaded in <head> before the Atlas starts.
+// Live data for the dashboards, loaded in <head> before the page starts.
 // It does not change how the dashboards are drawn. It sits in front of fetch() and, for the files of a dashboard that has a
 // live feed, swaps the September snapshot's numbers for the live ones produced by the scheduled job
 // (scripts/live_luganda.mjs, which applies the same filter as the snapshot). If the live file cannot be read in a few seconds,

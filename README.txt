@@ -1,4 +1,4 @@
-Uganda Wikimedia Atlas (offline copy)
+Wikimedia Uganda Analysis (offline copy)
 
 1. Unzip this folder.
 2. Windows: double-click start-windows.bat. Mac/Linux: run start-mac-linux.sh.

@@ -1,6 +1,6 @@
-# Uganda Mega Editathon: how this part of the Atlas works
+# Uganda Mega Editathon: how this part of the site works
 
-Page: `editathon.html` (linked from the Atlas top bar and a banner on every page).
+Page: `editathon.html` (linked from the site's top bar and a banner on every page).
 
 ## Before Saturday
 
@@ -21,6 +21,6 @@ Page: `editathon.html` (linked from the Atlas top bar and a banner on every page
 
 ## Notes
 
-- Everything else in the Atlas (the dashboards) is still the September 2026 snapshot. Only the editathon pages and the "Live check" strip are live.
+- Everything else on the site (the dashboards) is still the September 2026 snapshot. Only the editathon pages and the "Live check" strip are live.
 - Reverted edits earn nothing; the first edit to a page each day earns the base point; only article/item/file/category edits count (not talk pages).
 - To test the leaderboard before Saturday, temporarily set `start` to an earlier date in `config.json` and add yourself to `participants.json`.

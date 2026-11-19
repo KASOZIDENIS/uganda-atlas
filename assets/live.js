@@ -1,4 +1,4 @@
-// Live additions to the Atlas (loaded by index.html):
+// Live additions to the site (loaded by index.html):
 //  1. a banner under the top bar for the Mega Editathon (status, countdown, top three, link to the leaderboard)
 //  2. a "Live check" strip on the dashboards whose lists the editathon is fixing
 // It only reads small public files; nothing here changes the dashboards' own code.
