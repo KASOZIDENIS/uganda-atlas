@@ -172,7 +172,7 @@ function renderBoard() {
     `<div class="note">Points: ${scoreText()}. Reverted edits earn nothing. Tap “How it works” for the rules.</div>`;
 }
 const userLink = u => `<a href="https://en.wikipedia.org/wiki/Special:CentralAuth/${encodeURIComponent(u)}" target="_blank" rel="noopener">${esc(u)}</a>`;
-const scoreText = () => { const p = CFG.points; return `${p.edit} per page edited each day, +${p.task_page} for a page on the task lists, +${p.luganda_label} per Luganda label on Wikidata, +${p.wikidata_image} per image (P18) connected on Wikidata, +${p.upload} per Commons upload`; };
+const scoreText = () => { const p = CFG.points; return `Wikidata label ${p.wikidata_label}, Luganda Wikidata description ${p.wikidata_description}, infobox ${p.infobox}, databox ${p.databox}, image added to Wikidata ${p.wikidata_image}, image added to an article ${p.article_image}, Wikidata item linked to an article ${p.sitelink}, missing photo uploaded ${p.upload}`; };
 function ago(ts) {
   const s = Math.max(0, (Date.now() - new Date(ts)) / 1000);
   if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago';
@@ -328,14 +328,17 @@ function renderHow() {
   $('#p-how').innerHTML = `<div class="card"><h3 style="margin-top:0">What we are doing</h3><p>For three weeks we are improving how Uganda looks on Wikipedia, Wikidata and Wikimedia Commons: adding the missing lead images, connecting existing Commons images, adding Luganda labels, and photographing what has no image yet.</p>
     <h3>Join in</h3><ol><li>Make an account on Wikipedia if you do not have one.</li><li>Register for the event on <a href="${esc(CFG.participantsSource.event)}" target="_blank" rel="noopener">Meta-Wiki</a> and join the programme on the <a href="${esc(CFG.participantsSource.join)}" target="_blank" rel="noopener">Outreach Dashboard</a>. The leaderboard takes its participants from the Dashboard, so you appear here automatically, within a minute of enrolling.</li><li>Pick a list under “Task lists”, open an item, and make the edit. Add a short edit summary.</li><li>Watch your points here. The page refreshes by itself every minute.</li></ol>
     <h3>How points work</h3><table class="t"><tbody>
-      <tr><td>Any page you edit (first edit of that page each day)</td><td class="num"><b>${p.edit}</b></td></tr>
-      <tr><td>Extra, for a page that is on the task lists (English Wikipedia, Luganda Wikipedia, Runyankore on the Incubator)</td><td class="num"><b>+${p.task_page}</b></td></tr>
-      <tr><td>Extra, for each Luganda label you add on Wikidata</td><td class="num"><b>+${p.luganda_label}</b></td></tr>
-      <tr><td>Extra, for each image (P18) you connect to a Wikidata item</td><td class="num"><b>+${p.wikidata_image}</b></td></tr>
-      <tr><td>Extra, for each new file you upload to Wikimedia Commons</td><td class="num"><b>+${p.upload}</b></td></tr></tbody></table>
+      <tr><td>Wikidata label</td><td class="num"><b>${p.wikidata_label}</b></td></tr>
+      <tr><td>Luganda description added on Wikidata</td><td class="num"><b>${p.wikidata_description}</b></td></tr>
+      <tr><td>Infobox added to an article</td><td class="num"><b>${p.infobox}</b></td></tr>
+      <tr><td>Databox added to an article</td><td class="num"><b>${p.databox}</b></td></tr>
+      <tr><td>Adding an image to Wikidata (P18)</td><td class="num"><b>${p.wikidata_image}</b></td></tr>
+      <tr><td>Adding an image to an article (Luganda, Runyankore or English)</td><td class="num"><b>${p.article_image}</b></td></tr>
+      <tr><td>Linking a Wikidata item to its articles on any of the wikis</td><td class="num"><b>${p.sitelink}</b></td></tr>
+      <tr><td>Uploading a missing photo to Wikimedia Commons</td><td class="num"><b>${p.upload}</b></td></tr></tbody></table>
     <h3>Good to know</h3><ul><li>Only edits made between <b>${new Date(CFG.start).toLocaleString('en-GB')}</b> and <b>${new Date(CFG.end).toLocaleString('en-GB')}</b> (your device’s time) count. ${esc(CFG.timezoneNote)}</li>
-      <li>Reverted edits earn nothing, and repeated tiny edits to one page on the same day earn the base point only once.</li>
-      <li>Labels and images on Wikidata are recognised from the edit summary that Wikidata writes itself, so edits made with the normal Wikidata interface are counted.</li>
+      <li>Reverted edits earn nothing. Other edits are counted but earn no points.</li>
+      <li>Labels, images and links on Wikidata, and infoboxes, databoxes and images in articles, are recognised from the edit summary, so write a clear one (for example “added infobox”, “added image”).</li>
       <li>The organisers can remove edits that break the rules, for example copyright-violating uploads.</li>
       <li>All numbers come straight from the public Wikimedia APIs, so anyone can check them.</li></ul></div>`;
 }

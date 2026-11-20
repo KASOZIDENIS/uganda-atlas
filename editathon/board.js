@@ -6,8 +6,12 @@
 // each edit its points, and counts which task-list items were worked on.
 
 const FILE_CATEGORY_RE = /^File:/;
-const LABEL_RE = /\|lg\b/;
-const LABEL_CTX = /wbsetlabel|wbeditentity|wbsetlabeldescriptionaliases/;
+const LABEL_CTX = /wbsetlabel-add|wbsetlabeldescriptionaliases-add|wbeditentity-create/;
+const DESC_CTX = /wbsetdescription-add/;
+const SITELINK_CTX = /wbsetsitelink-add|wbsetsitelink-set|clientsitelink-update|wblinktitles/;
+const INFOBOX_RE = /infobox/i;
+const DATABOX_RE = /databox/i;
+const ARTICLE_IMAGE_RE = /\b(image|photo|picture|thumb|File:)|\[\[\s*(File|Image|Fayiro|Ekifaananyi)\s*:/i;
 const IMAGE_CTX = /wbcreateclaim|wbsetclaim|wbeditentity|wbsetreference|wbsetclaimvalue/;
 const P18_RE = /\bP18\b/;
 const QID_RE = /^Q\d+$/;
@@ -67,9 +71,14 @@ export function classify(wiki, c, config, ctx) {
   } else if (wiki === 'wikidatawiki') {
     if (c.ns !== 0 || !QID_RE.test(title)) return null;
     out.item = title;
-    if (comment.startsWith('/* wb') && LABEL_RE.test(comment) && LABEL_CTX.test(comment)) {
-      out.kinds.push('label'); out.points += P.luganda_label; out.list = 'wd-no-luganda';
+    if (comment.startsWith('/* wb') && LABEL_CTX.test(comment) && /\|[a-z-]+ \*\//.test(comment)) {
+      out.kinds.push('label'); out.points += P.wikidata_label;
+      if (/\|lg \*\//.test(comment)) out.list = 'wd-no-luganda';
     }
+    if (comment.startsWith('/* wb') && DESC_CTX.test(comment) && /\|lg \*\//.test(comment)) {
+      out.kinds.push('description'); out.points += P.wikidata_description;
+    }
+    if (SITELINK_CTX.test(comment)) { out.kinds.push('sitelink'); out.points += P.sitelink; }
     if (comment.startsWith('/* wb') && IMAGE_CTX.test(comment) && P18_RE.test(comment)) {
       out.kinds.push('image'); out.points += P.wikidata_image;
       out.list = (ctx.qidList && ctx.qidList.get(title)) || 'wd-capture';
@@ -77,7 +86,11 @@ export function classify(wiki, c, config, ctx) {
   } else {
     const map = ctx.titleMap[wiki];
     const list = map && map.get(title);
-    if (list) { out.kinds.push('task'); out.points += P.task_page; out.list = list; out.item = title; }
+    if (list) { out.kinds.push('task'); out.list = list; out.item = title; }
+    // article work, recognised from the edit summary
+    if (INFOBOX_RE.test(comment)) { out.kinds.push('infobox'); out.points += P.infobox; }
+    if (DATABOX_RE.test(comment)) { out.kinds.push('databox'); out.points += P.databox; }
+    if (ARTICLE_IMAGE_RE.test(comment) && !INFOBOX_RE.test(comment)) { out.kinds.push('article_image'); out.points += P.article_image; }
   }
   return out;
 }
@@ -125,7 +138,7 @@ export async function computeBoard({ config, users, ctx, fetchFn, now = new Date
   };
   const byUser = new Map(names.map(n => [n.toLowerCase(), {
     user: n, team: (users.find(u => cleanUser(u.user).toLowerCase() === n.toLowerCase()) || {}).team || '',
-    points: 0, edits: 0, byWiki: {}, tasks: 0, uploads: 0, labels: 0, images: 0, last: null
+    points: 0, edits: 0, byWiki: {}, tasks: 0, uploads: 0, labels: 0, images: 0, descriptions: 0, infoboxes: 0, databoxes: 0, articleImages: 0, sitelinks: 0, last: null
   }]));
   if (state === 'upcoming' || !names.length) return finish(board, byUser, config, ctx, new Map());
 
@@ -136,7 +149,7 @@ export async function computeBoard({ config, users, ctx, fetchFn, now = new Date
     catch (e) { board.errors.push(wiki + ': ' + e.message); return []; }
   }));
 
-  const seen = new Set(), dayPage = new Set(), items = new Map(); // list -> Set(items)
+  const seen = new Set(), items = new Map(); // list -> Set(items)
   const feed = [];
   for (const c of results.flat()) {
     const key = c.wiki + ':' + c.revid;
@@ -146,16 +159,18 @@ export async function computeBoard({ config, users, ctx, fetchFn, now = new Date
     if (!u) continue;
     const k = classify(c.wiki, c, config, ctx);
     if (!k) continue;
-    // one base point per page per day, so tiny repeated edits do not count
-    const dk = [u.user, c.wiki, c.title, (c.timestamp || '').slice(0, 10)].join('|');
-    let pts = k.points;
-    if (!dayPage.has(dk)) { dayPage.add(dk); pts += config.points.edit; }
+    const pts = k.points;
     u.points += pts; u.edits++;
     u.byWiki[c.wiki] = (u.byWiki[c.wiki] || 0) + 1;
     if (k.kinds.includes('upload')) u.uploads++;
     if (k.kinds.includes('label')) u.labels++;
     if (k.kinds.includes('image')) u.images++;
     if (k.kinds.includes('task')) u.tasks++;
+    if (k.kinds.includes('description')) u.descriptions++;
+    if (k.kinds.includes('infobox')) u.infoboxes++;
+    if (k.kinds.includes('databox')) u.databoxes++;
+    if (k.kinds.includes('article_image')) u.articleImages++;
+    if (k.kinds.includes('sitelink')) u.sitelinks++;
     if (!u.last || c.timestamp > u.last) u.last = c.timestamp;
     if (k.list && k.item) {
       if (!items.has(k.list)) items.set(k.list, new Set());

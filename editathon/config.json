@@ -7,11 +7,14 @@
   "refreshSeconds": 60,
   "snapshotUrl": "https://raw.githubusercontent.com/kasozidenis/uganda-atlas/editathon-data/leaderboard.json",
   "points": {
-    "edit": 1,
-    "task_page": 4,
-    "luganda_label": 3,
-    "wikidata_image": 5,
-    "upload": 3
+    "wikidata_label": 2,
+    "wikidata_description": 2,
+    "infobox": 3,
+    "databox": 3,
+    "wikidata_image": 2,
+    "article_image": 2,
+    "sitelink": 1,
+    "upload": 5
   },
   "wikis": {
     "enwiki": {
