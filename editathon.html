@@ -312,16 +312,7 @@ async function checkRows(l, rows) {
 function renderHow() {
   const p = CFG.points;
   $('#p-how').innerHTML = `<div class="card"><h3 style="margin-top:0">What we are doing</h3><p>For three weeks we are improving how Uganda looks on Wikipedia, Wikidata and Wikimedia Commons: adding the missing lead images, connecting existing Commons images, adding Luganda labels, and photographing what has no image yet.</p>
-    <h3>Join in</h3><ol><li>Make an account on Wikipedia if you do not have one.</li><li>Register for the event on <a href="${esc(CFG.participantsSource.event)}" target="_blank" rel="noopener">Meta-Wiki</a> and join the programme on the <a href="${esc(CFG.participantsSource.join)}" target="_blank" rel="noopener">Outreach Dashboard</a>. The leaderboard takes its participants from the Dashboard, so you appear here automatically, within a minute of enrolling.</li><li>Pick a list under “Task lists”, open an item, and make the edit. Add a short edit summary.</li><li>Watch your points here. The page refreshes by itself every minute.</li></ol>
-    <h3>How points work</h3><table class="t"><tbody>
-      <tr><td>Wikidata label</td><td class="num"><b>${p.wikidata_label}</b></td></tr>
-      <tr><td>Luganda description added on Wikidata</td><td class="num"><b>${p.wikidata_description}</b></td></tr>
-      <tr><td>Infobox added to an article</td><td class="num"><b>${p.infobox}</b></td></tr>
-      <tr><td>Databox added to an article</td><td class="num"><b>${p.databox}</b></td></tr>
-      <tr><td>Adding an image to Wikidata (P18)</td><td class="num"><b>${p.wikidata_image}</b></td></tr>
-      <tr><td>Adding an image to an article (Luganda, Runyankore or English)</td><td class="num"><b>${p.article_image}</b></td></tr>
-      <tr><td>Linking a Wikidata item to its articles on any of the wikis</td><td class="num"><b>${p.sitelink}</b></td></tr>
-      <tr><td>Uploading a missing photo to Wikimedia Commons</td><td class="num"><b>${p.upload}</b></td></tr></tbody></table>
+    <h3>Join in</h3><ol><li>Make an account on Wikipedia if you do not have one.</li><li>Register for the event on <a href="${esc(CFG.participantsSource.event)}" target="_blank" rel="noopener">Meta-Wiki</a> and join the programme on the <a href="${esc(CFG.participantsSource.join)}" target="_blank" rel="noopener">Outreach Dashboard</a>. The leaderboard takes its participants from the Dashboard, so you appear here automatically, within a minute of enrolling.</li><li>Pick a list under “Task lists”, open an item, and make the edit. Add a short edit summary.</li><li>Watch the group progress here. The page refreshes by itself every minute.</li></ol>
     <h3>Good to know</h3><ul><li>Only edits made between <b>${new Date(CFG.start).toLocaleString('en-GB')}</b> and <b>${new Date(CFG.end).toLocaleString('en-GB')}</b> (your device’s time) count. ${esc(CFG.timezoneNote)}</li>
       <li>Reverted edits earn nothing. Other edits are counted but earn no points.</li>
       <li>Labels, images and links on Wikidata, and infoboxes, databoxes and images in articles, are recognised from the edit summary, so write a clear one (for example “added infobox”, “added image”).</li>
