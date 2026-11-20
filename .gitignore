@@ -21,3 +21,7 @@ leaderboard.json
 *.log
 *.tmp
 ~$*
+
+# Reviewers only: full leaderboard with names and points. Never publish.
+review/
+leaderboard-full.json

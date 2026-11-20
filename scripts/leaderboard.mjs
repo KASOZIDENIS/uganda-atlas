@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeBoard, buildContext, getParticipants, SMALL_LISTS } from '../editathon/board.js';
+import { computeBoard, publicBoard, buildContext, getParticipants, SMALL_LISTS } from '../editathon/board.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rd = p => JSON.parse(readFileSync(join(root, p), 'utf-8'));
@@ -27,6 +27,8 @@ console.log(`participants: ${users.length} (${fromDashboard} from the Outreach D
 const board = await computeBoard({ config, users, ctx, fetchFn });
 const out = process.argv[2] || join(root, 'leaderboard.json');
 mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify(board));
+writeFileSync(out, JSON.stringify(publicBoard(board)));   // public: group totals only
+// Optional full board with names and points, for reviewers only. Never publish this file.
+if (process.argv[3]) writeFileSync(process.argv[3], JSON.stringify(board));
 console.log(`${board.state}: ${board.totals.participants} participants, ${board.totals.edits} counted edits, ${board.errors.length} errors`);
 if (board.errors.length) console.log(board.errors.join('\n'));

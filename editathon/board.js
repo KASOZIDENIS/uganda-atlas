@@ -192,10 +192,12 @@ function finish(board, byUser, config, ctx, items) {
     if (u.points !== prev) { rank = n; prev = u.points; }
     u.rank = u.points ? rank : null;
   }
-  const t = { participants: board.users.length, active: 0, edits: 0, points: 0, uploads: 0, labels: 0, images: 0, tasks: 0 };
+  const t = { participants: board.users.length, active: 0, edits: 0, points: 0, uploads: 0, labels: 0, descriptions: 0, images: 0, tasks: 0, infoboxes: 0, databoxes: 0, articleImages: 0, sitelinks: 0, byWiki: {} };
   for (const u of board.users) {
     if (u.edits) t.active++;
     t.edits += u.edits; t.points += u.points; t.uploads += u.uploads; t.labels += u.labels; t.images += u.images; t.tasks += u.tasks;
+    t.descriptions += u.descriptions; t.infoboxes += u.infoboxes; t.databoxes += u.databoxes; t.articleImages += u.articleImages; t.sitelinks += u.sitelinks;
+    for (const [w, n] of Object.entries(u.byWiki)) t.byWiki[w] = (t.byWiki[w] || 0) + n;
   }
   board.totals = t;
   for (const l of (ctx.lists || [])) {
@@ -221,3 +223,11 @@ export function buildContext(index, loaded) {
 
 export const SMALL_LISTS = ['en-image-exists', 'en-pick-category', 'en-capture', 'lg-image-exists', 'lg-capture',
   'nyn-image-exists', 'nyn-capture', 'wd-image-exists'];
+
+// The version everyone may see: group totals and task-list progress only. No names, points, ranks or
+// per-person counts, so nobody can chase a position. Reviewers use the full board (see review/).
+export function publicBoard(board) {
+  const t = Object.assign({}, board.totals); delete t.points;
+  return { generated: board.generated, state: board.state, start: board.start, end: board.end,
+           public: true, totals: t, progress: board.progress, errors: board.errors };
+}

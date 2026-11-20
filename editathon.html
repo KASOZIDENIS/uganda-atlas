@@ -83,16 +83,14 @@ table.t a{color:var(--blue-t)}
   </section>
 
   <div class="eh-tabs" id="tabs" role="tablist">
-    <button class="btn" type="button" data-p="board" aria-pressed="true">Leaderboard</button>
+    <button class="btn" type="button" data-p="board" aria-pressed="true">Together</button>
     <button class="btn" type="button" data-p="progress" aria-pressed="false">Progress</button>
-    <button class="btn" type="button" data-p="feed" aria-pressed="false">Live edits</button>
     <button class="btn" type="button" data-p="tasks" aria-pressed="false">Task lists</button>
     <button class="btn" type="button" data-p="how" aria-pressed="false">How it works</button>
   </div>
 
   <section class="eh-panel on" id="p-board"></section>
   <section class="eh-panel" id="p-progress"></section>
-  <section class="eh-panel" id="p-feed"></section>
   <section class="eh-panel" id="p-tasks"></section>
   <section class="eh-panel how" id="p-how"></section>
 </main>
@@ -100,7 +98,7 @@ table.t a{color:var(--blue-t)}
 <footer class="sitefoot"><div class="wrap"><span>Wikimedia Community User Group Uganda · Uganda Mega Editathon</span><span>Live data: Wikimedia APIs, refreshed every minute</span></div></footer>
 
 <script type="module">
-import { computeBoard, buildContext, getParticipants, SMALL_LISTS, windowState, cleanUser } from './editathon/board.js';
+import { computeBoard, publicBoard, buildContext, getParticipants, SMALL_LISTS, windowState, cleanUser } from './editathon/board.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -147,7 +145,7 @@ function renderHead() {
 
 function renderKpis() {
   const t = (BOARD && BOARD.totals) || {};
-  const items = [['Participants', t.participants], ['Edits counted', t.edits], ['Points scored', t.points], ['Wikidata labels and images', (t.labels || 0) + (t.images || 0)]];
+  const items = [['Participants', t.participants], ['Edits counted', t.edits], ['Images added', (t.images || 0) + (t.articleImages || 0) + (t.uploads || 0)], ['Wikidata labels and descriptions', (t.labels || 0) + (t.descriptions || 0)]];
   $('#kpis').innerHTML = items.map(([h, v]) => `<div class="kpi"><div class="eyebrow">${esc(h)}</div><div class="num big" style="font-family:var(--f-display);font-size:32px;font-weight:600">${fmt(v)}</div></div>`).join('');
 }
 
@@ -163,13 +161,13 @@ function renderBoard() {
     return;
   }
   if (!b) { root.innerHTML = '<div class="card empty">Loading…</div>'; return; }
-  const us = b.users, top = us.filter(u => u.points > 0).slice(0, 3);
-  const pod = top.length ? `<div class="podium">${top.map((u, i) => `<div class="pod ${i === 0 ? 'first' : ''}"><div class="n">${u.rank}</div><div class="u">${userLink(u.user)}</div><div class="p">${fmt(u.points)} points · ${fmt(u.edits)} edits</div></div>`).join('')}</div>` : '';
-  const rows = us.map(u => `<tr><td class="num">${u.rank == null ? '–' : u.rank}</td><td>${userLink(u.user)}${u.team ? ` <span class="badge">${esc(u.team)}</span>` : ''}</td>
-    <td class="num pts">${fmt(u.points)}</td><td class="num">${fmt(u.tasks)}</td><td class="num">${fmt(u.images)}</td><td class="num">${fmt(u.labels)}</td><td class="num">${fmt(u.uploads)}</td><td class="num">${fmt(u.edits)}</td><td>${u.last ? ago(u.last) : '–'}</td></tr>`).join('');
-  const state = b.state === 'upcoming' ? '<div class="note">The editathon has not started: points count from ' + new Date(CFG.start).toLocaleString('en-GB') + '.</div>' : '';
-  root.innerHTML = pod + `<div class="tbl-wrap card" style="padding:0"><table class="t"><thead><tr><th class="num">#</th><th>Participant</th><th class="num">Points</th><th class="num">Task pages</th><th class="num">Wikidata images</th><th class="num">Luganda labels</th><th class="num">Uploads</th><th class="num">Edits</th><th>Last edit</th></tr></thead><tbody>${rows}</tbody></table></div>` + state +
-    `<div class="note">Points: ${scoreText()}. Reverted edits earn nothing. Tap “How it works” for the rules.</div>`;
+  const t = b.totals || {};
+  const rows = [['Images uploaded to Wikimedia Commons', t.uploads], ['Images added on Wikidata', t.images], ['Images added to articles', t.articleImages],
+    ['Wikidata labels', t.labels], ['Luganda Wikidata descriptions', t.descriptions], ['Infoboxes', t.infoboxes], ['Databoxes', t.databoxes],
+    ['Wikidata items linked to articles', t.sitelinks]].map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num"><b>${fmt(v || 0)}</b></td></tr>`).join('');
+  const state = b.state === 'upcoming' ? '<div class="note">The editathon has not started: edits count from ' + new Date(CFG.start).toLocaleString('en-GB') + '.</div>' : '';
+  root.innerHTML = `<div class="card"><div class="eyebrow" style="margin-bottom:8px">What all of us have done so far</div><table class="t"><tbody>${rows}</tbody></table></div>` + state +
+    `<div class="note">This is the combined work of every participant. Individual results are reviewed by the organisers, who check the quality of edits, and are announced after the editathon. Tap “How it works” for the rules.</div>`;
 }
 const userLink = u => `<a href="https://en.wikipedia.org/wiki/Special:CentralAuth/${encodeURIComponent(u)}" target="_blank" rel="noopener">${esc(u)}</a>`;
 const scoreText = () => { const p = CFG.points; return `Wikidata label ${p.wikidata_label}, Luganda Wikidata description ${p.wikidata_description}, infobox ${p.infobox}, databox ${p.databox}, image added to Wikidata ${p.wikidata_image}, image added to an article ${p.article_image}, Wikidata item linked to an article ${p.sitelink}, missing photo uploaded ${p.upload}`; };
@@ -189,23 +187,11 @@ function renderProgress() {
     const ver = m ? `<br><span title="Checked on the live wiki">${fmt(m.done)} now fixed (checked ${new Date(METRICS.generated).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})</span>` : '';
     return `<div class="r"><div class="l">${esc(l.name)}</div><div class="bar"><i style="width:${Math.max(pc, p.done ? 1 : 0)}%"></i></div><div class="v">${fmt(p.done)} of ${fmt(p.total)} worked on · ${pc < 0.1 && p.done ? '<0.1' : pc.toFixed(1)}%${ver}</div></div>`;
   }).join('');
-  const per = {}; BOARD.users.forEach(u => Object.entries(u.byWiki).forEach(([w, n]) => per[w] = (per[w] || 0) + n));
+  const per = BOARD.totals.byWiki || {};
   const wk = Object.entries(CFG.wikis).map(([w, c]) => `<tr><td>${esc(c.label)}</td><td class="num">${fmt(per[w] || 0)}</td></tr>`).join('');
   root.innerHTML = `<div class="card"><div class="eyebrow" style="margin-bottom:12px">Task items worked on by participants</div><div class="prog">${rows}</div>
     <div class="note">“Worked on” counts an item once, when a participant edits it. “Now fixed” is a separate check of the live wiki, repeated about once an hour (the two large Wikidata lists are counted from edits only).</div></div>
     <div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">Counted edits by project</div><table class="t"><tbody>${wk}</tbody></table></div>`;
-}
-
-// ---------- live feed
-function renderFeed() {
-  const root = $('#p-feed'); if (!BOARD) { root.innerHTML = '<div class="card empty">Loading…</div>'; return; }
-  if (!BOARD.feed.length) { root.innerHTML = '<div class="card empty">No counted edits yet. They appear here as soon as participants save them.</div>'; return; }
-  const kind = { upload: 'upload', label: 'Luganda label', image: 'image added', task: 'task page', edit: 'edit' };
-  root.innerHTML = `<div class="card feed">${BOARD.feed.map(f => {
-    const w = CFG.wikis[f.wiki] || { label: f.wiki, site: '' };
-    const diff = w.site ? w.site.replace('/wiki/', '/wiki/Special:Diff/') + f.revid : '#';
-    return `<div class="f"><span class="ts">${ago(f.ts)}</span><span><b>${userLink(f.user)}</b> · ${esc(kind[f.kind] || f.kind)} · <a href="${wikiLink(CFG, f.wiki, f.title)}" target="_blank" rel="noopener">${esc(f.title)}</a> <span class="badge">${esc(w.label)}</span> <a class="badge" href="${diff}" target="_blank" rel="noopener">diff</a></span><span class="pt">+${f.points}</span></div>`;
-  }).join('')}</div>`;
 }
 
 // ---------- tasks
@@ -355,7 +341,7 @@ async function loadMetrics() {
   try { const j = await J(CFG.metricsUrl + '?t=' + Math.floor(Date.now() / 300000)); if (j && j.lists) METRICS = j; } catch (e) { }
 }
 async function snapshot() {
-  try { const j = await J(CFG.snapshotUrl + '?t=' + Math.floor(Date.now() / 60000)); if (j && j.users) { BOARD = j; SOURCE = 'snapshot'; return true; } } catch (e) { }
+  try { const j = await J(CFG.snapshotUrl + '?t=' + Math.floor(Date.now() / 60000)); if (j && j.totals) { BOARD = j; SOURCE = 'snapshot'; return true; } } catch (e) { }
   return false;
 }
 let refreshing = false;
@@ -365,7 +351,7 @@ async function refresh() {
     await loadParticipants();
     const b = await computeBoard({ config: CFG, users: PARTS, ctx: CTX, fetchFn: u => fetch(u) });
     if (b.errors.length && b.errors.length >= Object.keys(CFG.wikis).length) throw new Error('all projects failed');
-    BOARD = b; SOURCE = 'live'; LAST_OK = new Date();
+    BOARD = publicBoard(b); SOURCE = 'live'; LAST_OK = new Date();
     setLive(b.errors.length ? 'warn' : 'on', (b.errors.length ? 'Partly live' : 'Live') + ' · updated ' + LAST_OK.toLocaleTimeString('en-GB') + (b.state === 'upcoming' ? ' · not started' : ''));
   } catch (e) {
     setLive('warn', SOURCE === 'snapshot' && BOARD ? 'Showing a saved copy from ' + new Date(BOARD.generated).toLocaleTimeString('en-GB') + ' · live refresh failed' : 'Could not reach Wikimedia · retrying');
@@ -373,7 +359,7 @@ async function refresh() {
   refreshing = false; drawAll();
   loadMetrics().then(renderProgress);
 }
-function drawAll() { renderKpis(); renderBoard(); renderProgress(); renderFeed(); }
+function drawAll() { renderKpis(); renderBoard(); renderProgress(); }
 
 (async function main() {
   CFG = await J('editathon/config.json?t=' + Math.floor(Date.now() / 60000));
