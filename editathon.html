@@ -281,10 +281,23 @@ async function checkRows(l, rows) {
       for (const id of ids) { const e = j.entities && j.entities[id]; res.set(id, e && !e.missing ? (labelList ? !!(e.labels && e.labels.lg) : !!(e.claims && e.claims.P18 && e.claims.P18.length)) : null); }
     } else if (wiki === 'enwiki') {
       const titles = rows.map(r => r[0]);
-      const j = await wapi(wiki, { action: 'query', titles: titles.join('|'), prop: 'pageprops', ppprop: 'page_image|page_image_free' });
+      const j = { query: { normalized: [], pages: [] } }, merged = {}; let cont = {};
+      for (let k = 0; k < 8; k++) {   // 'images' is paged, follow the continuation so no page loses its file list
+        const r = await wapi(wiki, Object.assign({ action: 'query', titles: titles.join('|'), prop: 'pageprops|images', ppprop: 'page_image|page_image_free', imlimit: 'max' }, cont));
+        (r.query.normalized || []).forEach(n => j.query.normalized.push(n));
+        for (const p of (r.query.pages || [])) { const m = merged[p.title] || (merged[p.title] = Object.assign({}, p, { images: [] })); if (p.pageprops) m.pageprops = p.pageprops; (p.images || []).forEach(x => m.images.push(x)); }
+        if (!r.continue) break; cont = r.continue;
+      }
+      j.query.pages = Object.values(merged);
       const norm = {}; (j.query.normalized || []).forEach(n => norm[n.from] = n.to);
       const byTitle = {}; (j.query.pages || []).forEach(p => byTitle[p.title] = p);
-      for (const t of titles) { const p = byTitle[norm[t] || t]; res.set(t, p && !p.missing ? !!(p.pageprops && p.pageprops.page_image) : null); }
+      // page_image is only set for images the PageImages extension rates as a lead image (and lags behind edits),
+      // so also accept the page now using the exact file the list asked for.
+      const fileOf = {}; if (l.kind === 'image-exists') rows.forEach(r => fileOf[r[0]] = 'File:' + String(r[1] || '').replace(/^(File|Image):/i, '').replace(/_/g, ' ').trim());
+      const imgsOf = {}; for (const p of (j.query.pages || [])) imgsOf[p.title] = (p.images || []).map(x => x.title.replace(/_/g, ' '));
+      for (const t of titles) { const k = norm[t] || t, p = byTitle[k];
+        const hasTarget = !!fileOf[t] && (imgsOf[k] || []).includes(fileOf[t]);
+        res.set(t, p && !p.missing ? (!!(p.pageprops && p.pageprops.page_image) || hasTarget) : null); }
     } else {
       const prefix = wiki === 'incubatorwiki' ? 'Wp/nyn/' : '', boil = wiki === 'incubatorwiki' ? NYN_BOIL : LG_BOIL;
       const titles = rows.map(r => prefix + r[0]); const imgs = {}; let cont = {}, pages = {};
