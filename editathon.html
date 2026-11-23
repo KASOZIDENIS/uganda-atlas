@@ -53,6 +53,7 @@ table.t a{color:var(--blue-t)}
 .how h3{font-family:var(--f-display);font-size:22px;margin:22px 0 6px}
 .how p,.how li{color:var(--soft);max-width:78ch}
 .pg{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;font-family:var(--f-data);font-size:12.5px;color:var(--soft)}
+[hidden]{display:none!important}
 .note{font-size:12.5px;color:var(--mute);margin-top:8px}
 @media(max-width:720px){.podium{grid-template-columns:1fr}.prog .r{grid-template-columns:1fr}.prog .r .v{text-align:left}.feed .f{grid-template-columns:64px 1fr}.feed .f .pt{display:none}}
 </style>
@@ -86,7 +87,7 @@ table.t a{color:var(--blue-t)}
     <button class="btn" type="button" data-p="board" aria-pressed="true">Together</button>
     <button class="btn" type="button" data-p="progress" aria-pressed="false">Progress</button>
     <button class="btn" type="button" data-p="tasks" aria-pressed="false">Task lists</button>
-    <button class="btn" type="button" data-p="winners" aria-pressed="false">Who is winning</button>
+    <button class="btn" type="button" data-p="winners" aria-pressed="false" id="winTab" hidden>Who is winning (private)</button>
     <button class="btn" type="button" data-p="how" aria-pressed="false">How it works</button>
   </div>
 
@@ -121,6 +122,10 @@ const wikiLink = (cfg, wiki, title) => (cfg.wikis[wiki] ? cfg.wikis[wiki].site :
   apply(pref(), false);
 })();
 
+// The organiser's private view exists only when this page is opened on your own computer (localhost). The public
+// site never receives names or points, so nothing about individuals can be seen there.
+const LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+let FULL = null, VERIFIED = null, VERIFYING = false;
 let PSRC = null, CFG, INDEX, CTX, BOARD = null, METRICS = null, PARTS = [], SOURCE = 'none', LAST_OK = null;
 
 // ---------- tabs
@@ -169,7 +174,7 @@ function renderBoard() {
     ['Wikidata items linked to articles', t.sitelinks]].map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num"><b>${fmt(v || 0)}</b></td></tr>`).join('');
   const state = b.state === 'upcoming' ? '<div class="note">The editathon has not started: edits count from ' + new Date(CFG.start).toLocaleString('en-GB') + '.</div>' : '';
   root.innerHTML = `<div class="card"><div class="eyebrow" style="margin-bottom:8px">What all of us have done so far</div><table class="t"><tbody>${rows}</tbody></table></div>` + state +
-    `<div class="note">This is the combined work of every participant. Individual results are reviewed by the organisers, who check the quality of edits, and are announced after the editathon. Tap “How it works” for the rules.</div>`;
+    `<div class="note">This is the combined work of every participant. Tap “How it works” for the rules.</div>`;
 }
 const userLink = u => `<a href="https://en.wikipedia.org/wiki/Special:CentralAuth/${encodeURIComponent(u)}" target="_blank" rel="noopener">${esc(u)}</a>`;
 const scoreText = () => { const p = CFG.points; return `Luganda Wikidata description ${p.wikidata_description} per item, infobox ${p.infobox}, databox ${p.databox}, image added to Wikidata ${p.wikidata_image}, image added to an article ${p.article_image}, Wikidata item linked to an article ${p.sitelink}, missing photo uploaded ${p.upload}`; };
@@ -199,12 +204,13 @@ function renderProgress() {
 // ---------- who is winning
 const KIND_NAMES = { upload: 'Photos uploaded to Commons', image: 'Images added on Wikidata', article_image: 'Images added to articles', infobox: 'Infoboxes', databox: 'Databoxes', description: 'Luganda descriptions', sitelink: 'Items linked to articles' };
 function renderWinners() {
-  const root = $('#p-winners'), b = BOARD;
+  if (!LOCAL) return;
+  $('#winTab').hidden = false;
+  const root = $('#p-winners'), b = VERIFIED || FULL;
   if (!b) { root.innerHTML = '<div class="card empty">Loading…</div>'; return; }
-  if (!b.winners) { root.innerHTML = '<div class="card empty">Results for each project are announced after the editathon.</div>'; return; }
   const cards = Object.entries(CFG.wikis).map(([w, c]) => {
-    const p = b.winners[w], top = (p && p.top) || [];
-    if (!top.length) return `<div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">${esc(c.label)}</div><div class="note">No points yet. Be the first.</div></div>`;
+    const top = ((b.projects[w] || {}).ranking || []).slice(0, 5);
+    if (!top.length) return `<div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">${esc(c.label)}</div><div class="note">No points yet.</div></div>`;
     const lead = top[0], gap = top[1] ? lead.points - top[1].points : null;
     const best = Object.entries(lead.mix || {}).sort((x, y) => y[1].pts - x[1].pts)[0];
     const why = `<div class="note" style="margin:0 0 10px"><b>${userLink(lead.user)}</b> leads${gap === null ? '' : gap === 0 ? ', tied on points' : ' by ' + fmt(gap) + ' point' + (gap === 1 ? '' : 's')}${best ? ', mostly from ' + esc((KIND_NAMES[best[0]] || best[0]).toLowerCase()) + ' (' + fmt(best[1].pts) + ' of ' + fmt(lead.points) + ' points)' : ''}.</div>`;
@@ -215,8 +221,20 @@ function renderWinners() {
     }).join('');
     return `<div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">${esc(c.label)}</div>${why}<div class="tbl-wrap"><table class="t"><thead><tr><th class="num">#</th><th>Editor</th><th class="num">Points</th><th class="num">Edits</th><th>Where the points come from</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }).join('');
-  root.innerHTML = `<div class="note" style="margin:0">One winner per project: the editor with the most points earned on that project. Points: ${scoreText()}.</div>` + cards +
-    `<div class="note">Live standings, updated every minute. Before any prize is awarded the organisers check every edit again and remove deleted, undone and reverted work, so the final order can differ. Tied editors are ordered by who reached the points first.</div>`;
+  const d = VERIFIED ? VERIFIED.dropped || [] : null;
+  const status = VERIFIED
+    ? `Every counted edit was re-checked at ${new Date(VERIFIED.generated).toLocaleTimeString('en-GB')}: ${d.length} no longer live (${d.filter(x => x.why === 'deleted').length} deleted, ${d.filter(x => x.why === 'reverted').length} undone or reverted), ${fmt(d.reduce((n, x) => n + x.points, 0))} points removed.`
+    : 'Quick view: only edits tagged as reverted are left out. Use the button to re-check every edit.';
+  root.innerHTML = `<div class="card" style="border-color:var(--accent,#c00)"><b>Private.</b> You see this only because the page is open on your own computer. The public site shows no names or points.
+    <div class="note" style="margin:8px 0 10px">${esc(status)}</div>
+    <button class="btn" type="button" id="verifyBtn" ${VERIFYING ? 'disabled' : ''}>${VERIFYING ? 'Checking every edit… about 2 minutes' : 'Check every edit (deleted, undone, reverted)'}</button></div>` + cards +
+    `<div class="note">One winner per project: most points earned on that project. Tied editors are ordered by who reached the points first. Points: ${scoreText()}.</div>`;
+  $('#verifyBtn').addEventListener('click', async () => {
+    VERIFYING = true; renderWinners();
+    try { VERIFIED = await computeBoard({ config: CFG, users: PARTS, ctx: CTX, fetchFn: u => fetch(u), verify: true }); }
+    catch (e) { console.warn(e); }
+    VERIFYING = false; renderWinners();
+  });
 }
 
 // ---------- tasks
@@ -380,7 +398,7 @@ async function refresh() {
     await loadParticipants();
     const b = await computeBoard({ config: CFG, users: PARTS, ctx: CTX, fetchFn: u => fetch(u) });
     if (b.errors.length && b.errors.length >= Object.keys(CFG.wikis).length) throw new Error('all projects failed');
-    BOARD = publicBoard(b); SOURCE = 'live'; LAST_OK = new Date();
+    BOARD = publicBoard(b); if (LOCAL) FULL = b; SOURCE = 'live'; LAST_OK = new Date();
     setLive(b.errors.length ? 'warn' : 'on', (b.errors.length ? 'Partly live' : 'Live') + ' · updated ' + LAST_OK.toLocaleTimeString('en-GB') + (b.state === 'upcoming' ? ' · not started' : ''));
   } catch (e) {
     setLive('warn', SOURCE === 'snapshot' && BOARD ? 'Showing a saved copy from ' + new Date(BOARD.generated).toLocaleTimeString('en-GB') + ' · live refresh failed' : 'Could not reach Wikimedia · retrying');
@@ -398,7 +416,7 @@ function drawAll() { renderKpis(); renderBoard(); renderProgress(); renderWinner
   await Promise.all(INDEX.lists.filter(l => SMALL_LISTS.includes(l.id)).map(async l => { loaded[l.id] = []; for (let n = 0; n < l.chunks; n++) loaded[l.id].push(...await J(`editathon/tasks/${l.id}.${n}.json`)); }));
   CTX = buildContext(INDEX, loaded);
   await loadParticipants();
-  const h = location.hash.replace('#', ''); if (h && $('#tabs [data-p="' + h + '"]')) $('#tabs [data-p="' + h + '"]').click();
+  const h = location.hash.replace('#', ''); if (h && $('#tabs [data-p="' + h + '"]') && (h !== 'winners' || LOCAL)) $('#tabs [data-p="' + h + '"]').click();
   drawAll();
   if (windowState(CFG) !== 'upcoming' && await snapshot()) { setLive('warn', 'Saved copy from ' + new Date(BOARD.generated).toLocaleTimeString('en-GB') + ' · going live…'); drawAll(); }
   await refresh();

@@ -205,7 +205,6 @@ export async function computeBoard({ config, users, ctx, fetchFn, now = new Date
   const state = windowState(config, now);
   const names = users.map(u => cleanUser(u.user)).filter(Boolean);
   const board = {
-    showWinners: config.showWinners !== false,
     generated: now.toISOString(), state, start: config.start, end: config.end,
     users: [], totals: {}, progress: { lists: {} }, feed: [], errors: []
   };
@@ -344,19 +343,11 @@ export function buildContext(index, loaded) {
 export const SMALL_LISTS = ['en-image-exists', 'en-pick-category', 'en-capture', 'lg-image-exists', 'lg-capture',
   'nyn-image-exists', 'nyn-capture', 'wd-image-exists'];
 
-// The version everyone may see: group totals, task-list progress and (unless showWinners is false) the top five
-// per project with what their points are made of. Everything else per person stays private.
+// The version everyone may see: group totals and task-list progress only. No names, points, ranks or
+// per-person counts, so nobody can chase a position. The organiser's private view (the "Who is winning" tab when
+// the page is opened on localhost, and scripts/winners.mjs) uses the full board instead.
 export function publicBoard(board) {
   const t = Object.assign({}, board.totals); delete t.points;
-  const out = { generated: board.generated, state: board.state, start: board.start, end: board.end,
+  return { generated: board.generated, state: board.state, start: board.start, end: board.end,
            public: true, totals: t, progress: board.progress, errors: board.errors };
-  // The "Who is winning" tab: top five per project and what their points are made of (switch off with showWinners:false in config.json)
-  if (board.showWinners !== false && board.projects) {
-    out.winners = {};
-    for (const [w, p] of Object.entries(board.projects)) {
-      out.winners[w] = { label: p.label, total: p.ranking.length,
-        top: p.ranking.slice(0, 5).map(r => ({ rank: r.rank, user: r.user, points: r.points, edits: r.edits, mix: r.mix })) };
-    }
-  }
-  return out;
 }
