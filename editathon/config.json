@@ -7,7 +7,6 @@
   "refreshSeconds": 60,
   "snapshotUrl": "https://raw.githubusercontent.com/kasozidenis/uganda-atlas/editathon-data/leaderboard.json",
   "points": {
-    "wikidata_label": 2,
     "wikidata_description": 2,
     "infobox": 3,
     "databox": 3,
@@ -15,6 +14,13 @@
     "article_image": 2,
     "sitelink": 1,
     "upload": 5
+  },
+  "prizes": {
+    "enwiki": 100000,
+    "commonswiki": 100000,
+    "wikidatawiki": 100000,
+    "lgwiki": 100000,
+    "incubatorwiki": 100000
   },
   "wikis": {
     "enwiki": {

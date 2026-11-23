@@ -22,5 +22,7 @@ Page: `editathon.html` (linked from the site's top bar and a banner on every pag
 ## Notes
 
 - Everything else on the site (the dashboards) is still the September 2026 snapshot. Only the editathon pages and the "Live check" strip are live.
+- Prizes: one winner per project (English, Commons, Wikidata, Luganda, Runyankore), ranked by points earned on that project alone. One person may win several. Reviewers run `node scripts/winners.mjs` (private, prints only). It re-checks every counted edit and drops any that were deleted, undone or reverted (`findDead` in `board.js`).
+- Wikidata: the Luganda description earns 2 points per item per person, whether done in one edit or several. Labels earn nothing (they are nearly the same in every language).
 - Reverted edits earn nothing; only the listed contribution types earn points (see `points` in config.json); only article/item/file/category edits count (not talk pages).
 - To test the leaderboard before Saturday, temporarily set `start` to an earlier date in `config.json` and add yourself to `participants.json`.

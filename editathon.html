@@ -86,12 +86,14 @@ table.t a{color:var(--blue-t)}
     <button class="btn" type="button" data-p="board" aria-pressed="true">Together</button>
     <button class="btn" type="button" data-p="progress" aria-pressed="false">Progress</button>
     <button class="btn" type="button" data-p="tasks" aria-pressed="false">Task lists</button>
+    <button class="btn" type="button" data-p="winners" aria-pressed="false">Who is winning</button>
     <button class="btn" type="button" data-p="how" aria-pressed="false">How it works</button>
   </div>
 
   <section class="eh-panel on" id="p-board"></section>
   <section class="eh-panel" id="p-progress"></section>
   <section class="eh-panel" id="p-tasks"></section>
+  <section class="eh-panel" id="p-winners"></section>
   <section class="eh-panel how" id="p-how"></section>
 </main>
 
@@ -170,7 +172,7 @@ function renderBoard() {
     `<div class="note">This is the combined work of every participant. Individual results are reviewed by the organisers, who check the quality of edits, and are announced after the editathon. Tap “How it works” for the rules.</div>`;
 }
 const userLink = u => `<a href="https://en.wikipedia.org/wiki/Special:CentralAuth/${encodeURIComponent(u)}" target="_blank" rel="noopener">${esc(u)}</a>`;
-const scoreText = () => { const p = CFG.points; return `Wikidata label ${p.wikidata_label}, Luganda Wikidata description ${p.wikidata_description}, infobox ${p.infobox}, databox ${p.databox}, image added to Wikidata ${p.wikidata_image}, image added to an article ${p.article_image}, Wikidata item linked to an article ${p.sitelink}, missing photo uploaded ${p.upload}`; };
+const scoreText = () => { const p = CFG.points; return `Luganda Wikidata description ${p.wikidata_description} per item, infobox ${p.infobox}, databox ${p.databox}, image added to Wikidata ${p.wikidata_image}, image added to an article ${p.article_image}, Wikidata item linked to an article ${p.sitelink}, missing photo uploaded ${p.upload}`; };
 function ago(ts) {
   const s = Math.max(0, (Date.now() - new Date(ts)) / 1000);
   if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago';
@@ -192,6 +194,29 @@ function renderProgress() {
   root.innerHTML = `<div class="card"><div class="eyebrow" style="margin-bottom:12px">Task items worked on by participants</div><div class="prog">${rows}</div>
     <div class="note">“Worked on” counts an item once, when a participant edits it. “Now fixed” is a separate check of the live wiki, repeated about once an hour (the two large Wikidata lists are counted from edits only).</div></div>
     <div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">Counted edits by project</div><table class="t"><tbody>${wk}</tbody></table></div>`;
+}
+
+// ---------- who is winning
+const KIND_NAMES = { upload: 'Photos uploaded to Commons', image: 'Images added on Wikidata', article_image: 'Images added to articles', infobox: 'Infoboxes', databox: 'Databoxes', description: 'Luganda descriptions', sitelink: 'Items linked to articles' };
+function renderWinners() {
+  const root = $('#p-winners'), b = BOARD;
+  if (!b) { root.innerHTML = '<div class="card empty">Loading…</div>'; return; }
+  if (!b.winners) { root.innerHTML = '<div class="card empty">Results for each project are announced after the editathon.</div>'; return; }
+  const cards = Object.entries(CFG.wikis).map(([w, c]) => {
+    const p = b.winners[w], top = (p && p.top) || [];
+    if (!top.length) return `<div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">${esc(c.label)}</div><div class="note">No points yet. Be the first.</div></div>`;
+    const lead = top[0], gap = top[1] ? lead.points - top[1].points : null;
+    const best = Object.entries(lead.mix || {}).sort((x, y) => y[1].pts - x[1].pts)[0];
+    const why = `<div class="note" style="margin:0 0 10px"><b>${userLink(lead.user)}</b> leads${gap === null ? '' : gap === 0 ? ', tied on points' : ' by ' + fmt(gap) + ' point' + (gap === 1 ? '' : 's')}${best ? ', mostly from ' + esc((KIND_NAMES[best[0]] || best[0]).toLowerCase()) + ' (' + fmt(best[1].pts) + ' of ' + fmt(lead.points) + ' points)' : ''}.</div>`;
+    const rows = top.map(r => {
+      const mix = Object.entries(r.mix || {}).sort((x, y) => y[1].pts - x[1].pts)
+        .map(([k, m]) => `<span class="badge">${esc(KIND_NAMES[k] || k)}: ${fmt(m.n)} · ${fmt(m.pts)} pts</span>`).join(' ');
+      return `<tr><td class="num">${r.rank}</td><td>${userLink(r.user)}</td><td class="num"><b>${fmt(r.points)}</b></td><td class="num">${fmt(r.edits)}</td><td>${mix}</td></tr>`;
+    }).join('');
+    return `<div class="card" style="margin-top:16px"><div class="eyebrow" style="margin-bottom:8px">${esc(c.label)}</div>${why}<div class="tbl-wrap"><table class="t"><thead><tr><th class="num">#</th><th>Editor</th><th class="num">Points</th><th class="num">Edits</th><th>Where the points come from</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+  root.innerHTML = `<div class="note" style="margin:0">One winner per project: the editor with the most points earned on that project. Points: ${scoreText()}.</div>` + cards +
+    `<div class="note">Live standings, updated every minute. Before any prize is awarded the organisers check every edit again and remove deleted, undone and reverted work, so the final order can differ. Tied editors are ordered by who reached the points first.</div>`;
 }
 
 // ---------- tasks
@@ -363,7 +388,7 @@ async function refresh() {
   refreshing = false; drawAll();
   loadMetrics().then(renderProgress);
 }
-function drawAll() { renderKpis(); renderBoard(); renderProgress(); }
+function drawAll() { renderKpis(); renderBoard(); renderProgress(); renderWinners(); }
 
 (async function main() {
   CFG = await J('editathon/config.json?t=' + Math.floor(Date.now() / 60000));
