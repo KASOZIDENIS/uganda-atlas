@@ -341,7 +341,7 @@ export function buildContext(index, loaded) {
 }
 
 export const SMALL_LISTS = ['en-image-exists', 'en-pick-category', 'en-capture', 'lg-image-exists', 'lg-capture',
-  'nyn-image-exists', 'nyn-capture', 'wd-image-exists'];
+  'nyn-image-exists', 'nyn-capture', 'wd-image-exists', 'lg-more-images', 'lg-more-category', 'nyn-more-images', 'en-no-image-infobox'];
 
 // The version everyone may see: group totals and task-list progress only. No names, points, ranks or
 // per-person counts, so nobody can chase a position. The organiser's private view (the "Who is winning" tab when

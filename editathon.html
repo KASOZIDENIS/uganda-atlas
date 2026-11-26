@@ -264,7 +264,7 @@ function drawTasks() {
   $('#tinfo').textContent = l.name + '. ' + describe(l);
   checkRows(l, rows.filter(r => !TS.done.has(r[0]) && !TS.tried.has(l.id + '|' + r[0])));
 }
-const describe = l => ({ 'image-exists': 'A free image already exists. Add it to the page.', 'pick-category': 'Choose a suitable photograph from the Commons category and add it.', capture: 'No image found on Commons. Search Commons first; if nothing fits, photograph the subject.',
+const describe = l => ({ 'image-infobox': 'The article has no lead image and no infobox. Add a suitable image from Commons and an infobox (done once an image shows).', 'image-exists': 'A free image already exists. Add it to the page.', 'pick-category': 'Choose a suitable photograph from the Commons category and add it.', capture: 'No image found on Commons. Search Commons first; if nothing fits, photograph the subject.',
   'wd-image-exists': 'The Commons image exists. Add it to the item as “image” (P18).', 'wd-capture': 'No image anywhere. Photograph the subject, upload it to Commons, then add it as “image” (P18).', 'wd-label': 'Add the Luganda name as the item’s label (language lg).' }[l.kind] || '');
 
 async function wapi(wiki, params) {
